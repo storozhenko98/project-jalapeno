@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essay Editor</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        #container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        #editor {
+            width: 48%; /* Split the space */
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            font-size: 18px;
+        }
+
+        [contenteditable="true"]:empty::before {
+            content: attr(data-placeholder);
+            color: #aaa; /* Placeholder text color */
+            display: block; /* For newline when typing */
+        }
+
+        
+
+        #paragraph-suggestions {
+            width: 48%; /* Split the space */
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            font-size: 18px;
+            overflow-y: auto; /* Scroll when content exceeds height */
+        }
+
+        .paragraph-advice {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #e7e7e7;
+            border: 1px dashed #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            
+            text-align: center;
+            font-size: 16px;
+        }
+
+
+
+        #suggestion {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e7e7e7;
+            border: 1px dashed #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        #suggestion:hover, #suggestion:focus {
+            background-color: #d7d7d7;
+        }
+
+        #save-btn {
+            margin-top: 20px;
+            padding: 15px 25px;
+            background-color: #007BFF;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 18px;
+            transition: background-color 0.3s;
+        }
+
+        #save-btn:hover, #save-btn:focus {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>GPT Co-Writer </h1>
+    <div id="container">
+        <div id="editor" contenteditable="true" data-placeholder="Start typing your essay..."></div>
+        <div id="paragraph-suggestions">
+            <div class="paragraph-advice" tabindex="0">Paragraph Advice</div>
+        </div>
+    </div>
+    <div id="suggestion" onclick="appendSuggestion()" tabindex="0"></div>
+    <button id="save-btn" onclick="saveEssay()">Save Essay</button>
+    <script>
+        let pCounter = 0;
+        let editor = document.getElementById('editor');
+        let suggestionBox = document.getElementById('suggestion');
+        let tooltip = document.getElementById('tooltip');
+        //const OPENAI_API_KEY = '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';
+        //make req to /get-api
+        const OPENAI_API_KEY = fetch('/get-api')
+            .then(response => response.json())
+            .then(data => {
+                console.log("data", data)
+                return data.api
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+
+        editor.addEventListener('input', function() {
+            let paragraphs = this.innerText.split('\n').filter(Boolean);
+            if(paragraphs.length) {
+                let sentences = paragraphs[paragraphs.length - 1].split('.').filter(Boolean);
+                if (sentences.length >= 3) {
+                    let lastThree = sentences.slice(-3);
+                    getSuggestionFromOpenAI(lastThree);
+                } else {
+                    suggestionBox.textContent = '';
+                }
+            }
+        });
+
+        editor.addEventListener('keyup', function(event) {
+            console.log("event.keyCode", event.keyCode)
+            if(event.keyCode === 13) {
+                setTimeout(() => {
+                    let paragraphs = editor.innerText.split('\n').filter(Boolean);
+                    console.log("running improvement")
+                    if(paragraphs.length >= 1) {
+                        let lastCompletedParagraph = paragraphs[paragraphs.length - 1];
+                        console.log("lastCompletedParagraph", lastCompletedParagraph)
+                        getParagraphImprovement(lastCompletedParagraph);
+                    }
+                }, 100);
+            }
+        });
+
+        editor.addEventListener('focus', function() {
+            if (!this.textContent.trim()) {
+                this.textContent = '';
+            }
+        });
+        editor.addEventListener('blur', function() {
+            if (!this.textContent.trim()) {
+                this.textContent = '';
+            }
+        });
+
+
+        function appendParagraph(parSuggestion){
+            pCounter++;
+            let paragraphSuggestions = document.getElementById('paragraph-suggestions');
+            let paragraphAdvice = document.createElement('div');
+            paragraphAdvice.classList.add('paragraph-advice');
+            paragraphAdvice.textContent = "Paragraph " + pCounter + ": " + "\n" + parSuggestion;
+            //add paragraphAdvice to paragraphSuggestions
+            paragraphSuggestions.appendChild(paragraphAdvice);
+        }
+
+        function getSuggestionFromOpenAI(sentences) {
+            let data = {
+                model: "gpt-4",
+                max_tokens: 100,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are essayComplete and your task is to: (1) read the three prior sentences, (2) analyze the most reasonable further sentence, and (3) return the most reasonable further sentence and only that sentence alone."
+                    },
+                    {
+                        role: "user",
+                        content: sentences.join(' ')
+                    }
+                ]
+            };
+
+            fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + OPENAI_API_KEY
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                let suggestedText = data.choices[0].message.content;
+                suggestionBox.textContent = "Click to add: " + suggestedText;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function getParagraphImprovement(paragraph) {
+            console.log("function getParagraphImprovement(paragraph")
+            let data = {
+                model: "gpt-4",
+                max_tokens: 150,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are essayGPT. Your task is to read a paragraph and return one to two sentences on how to improve it."
+                    },
+                    {
+                        role: "user",
+                        content: paragraph
+                    }
+                ]
+            };
+
+            fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + OPENAI_API_KEY
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                appendParagraph(data.choices[0].message.content, editor);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function appendSuggestion() {
+            editor.innerText += " " + suggestionBox.textContent.replace("Click to add: ", "");
+            suggestionBox.textContent = '';
+        }
+
+        function saveEssay() {
+            let blob = new Blob([editor.innerText], { type: 'text/plain' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'essay.txt';
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+
+        #main {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        img {
+            display: block;
+            margin: 20px auto;
+        }
+
+        button {
+            display: block;
+            margin: 10px auto;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main"></div>
+
+    <script>
+        const splashForm = `
+            <h1> Welcome to Jalapeno OS! </h1>
+            <img id="splashImage" src="/static/assets/system/splash.png" alt="Jalapeno OS Logo" width="200" height="200">
+            <p id="splashWelcome"> Thank you for purchasing our exciting product! We hope you make the most of it! </p>
+            <button id="splashButton" onclick="splashButton()">Continue</button>
+        `;
+
+
+        const nameForm = `
+            <h1> Setup </h1>
+            <p> Please enter your username: </p>
+            <input id="nameInput" type="text" placeholder="username...">
+            <button id="nameButton" onclick="nameButton()">Continue</button>
+        `;
+
+        const passwordForm = `
+            <h1> Setup </h1>
+            <p> Please enter your password: </p>
+            <input id="passwordInput" type="password" placeholder="password...">
+            <button id="passwordButton" onclick="passwordButton()">Continue</button>
+        `;
+
+        const passwordConfirm = `
+            <h1> Setup </h1>
+            <p> Please confirm your password: </p>
+            <input id="passwordConfirmInput" type="password" placeholder="password...">
+            <button id="passwordConfirmButton" onclick="passwordConfirmButton()">Continue</button>
+        `;
+
+        const apiForm = `
+            <h1> Setup </h1>
+            <p> Please enter your openAI API key: </p>
+            <input id="apiInput" type="text" placeholder="API key...">
+            <button id="apiButton" onclick="apiButton()">Continue</button>
+        `;
+
+        const mainDiv = document.getElementById("main");
+        let currentForm = 0;
+        let name = "";
+        let password = "";
+        let api = "";
+
+        async function nameButton() {
+            name = document.getElementById("nameInput").value;
+
+            const checkingMessage = document.createElement("p");
+            checkingMessage.innerHTML = "Checking database for name...";
+            mainDiv.appendChild(checkingMessage);
+
+            try {
+                const response = await fetch("https://personal-projects.a2hosted.com/user-new", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username: name })
+                });
+
+                const data = await response.json();
+                mainDiv.removeChild(checkingMessage);
+
+                if (data.username === "taken") {
+                    alert("Name is taken!");
+                    mainDiv.innerHTML = nameForm;
+                } else {
+                    mainDiv.innerHTML = passwordForm;
+                    currentForm = 2;
+                }
+            } catch (error) {
+                console.error("Error checking username:", error);
+                alert("An error occurred. Please try again.");
+                mainDiv.innerHTML = nameForm;
+            }
+        }
+
+        function splashButton() {
+            mainDiv.innerHTML = nameForm;
+            currentForm = 1;
+        }
+
+        function passwordButton() {
+            password = document.getElementById("passwordInput").value;
+            if (password.length < 8) {
+                alert("Password must be at least 8 characters long!");
+                mainDiv.innerHTML = passwordForm;
+            } else {
+                mainDiv.innerHTML = passwordConfirm;
+                currentForm = 3;
+            }
+        }
+
+        function passwordConfirmButton() {
+            const passwordConfirmValue = document.getElementById("passwordConfirmInput").value;
+            if (passwordConfirmValue === password) {
+                mainDiv.innerHTML = apiForm;
+                currentForm = 4;
+            } else {
+                alert("Passwords do not match!");
+            }
+        }
+
+        function apiButton() {
+            api = document.getElementById("apiInput").value;
+            alert("Thank you for setting up Jalapeno OS! Your device will now restart.");
+            fetch("/register", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: name, password: password, api: api })
+            });
+        }
+
+        mainDiv.innerHTML = splashForm;
+
+    </script>
+</body>
+
+</html>

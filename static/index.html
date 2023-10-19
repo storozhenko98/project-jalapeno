@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Desktop Environment</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url('static/assets/system/background.png');
+            background-size: cover;
+            overflow: hidden;
+        }
+    
+        #top-bar {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+    
+        .icon {
+            width: 150px;             /* increased width */
+            height: 150px;            /* increased height */
+            display: inline-block;
+            margin: 20px;
+            cursor: pointer;
+            position: relative;
+            text-align: center;
+            box-sizing: border-box;
+            border-radius: 10px;
+            
+            
+        }
+    
+        .icon img {
+            max-width: 100%;         /* increased image size */
+            display: block;          /* added to remove any default margin/padding */
+            margin: 0 auto;          /* centering the image horizontally */
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+    
+        .icon:hover {
+            background-color: transparent; /* removing the hover background color */
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="top-bar">
+        <span id="time"></span>
+        <span id="welcome"></span>
+    </div>
+
+    <div class="icon" data-icon="co-writer" onclick="iconClicked('co-writer')">
+        <img src="static/assets/system/co-writer.png" alt="Co-Writer">
+        <span style="color: black; background-color: aliceblue; padding: 5px; border-radius: 5px; font-weight: bold;">Co-Writer</span>
+    </div>
+    <div class="icon" data-icon="hyperSVG" onclick="iconClicked('hyperSVG')">
+        <img src="static/assets/system/hyperSVG.png" alt="hyperSVG">
+        <span style="color: black; background-color: aliceblue; padding: 5px; border-radius: 5px; font-weight: bold;">hyperSVG</span>
+    </div>
+    <div class="icon" data-icon="ssh" onclick="iconClicked('ssh')">
+        <img src="static/assets/system/ssh.png" alt="SSH">
+        <span style="color: black; background-color: aliceblue; padding: 5px; border-radius: 5px; font-weight: bold;">SSH</span>
+    </div>
+    <div class="icon" data-icon="settings" onclick="iconClicked('settings')">
+        <img src="static/assets/system/settings.png" alt="Settings">
+        <span style="color: black; background-color: aliceblue; padding: 5px; border-radius: 5px; font-weight: bold;">Settings</span>
+    </div>
+
+    <script>
+        // Check for user authentication
+        //if (localStorage.getItem("user") !== "authed") {
+        //    window.location.href = "/login";
+        //}
+
+        function iconClicked(iconName) {
+            window.location.href = `/backend-endpoint?icon=${iconName}`;
+        }
+
+
+        // Fetch username
+        fetch("/getUserName")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("welcome").innerText = `Welcome, ${data.username}`;
+            })
+            .catch(error => {
+                console.error('Error fetching username:', error);
+            });
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById("time").innerText = now.toLocaleTimeString();
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+    </script>
+</body>
+</html>

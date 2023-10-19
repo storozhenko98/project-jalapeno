@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Command Executor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+            display: block;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        pre {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Execute SSH Command</h1>
+    <input type="text" id="command" placeholder="Enter your command">
+    <button onclick="executeCommand()">Execute</button>
+    <pre id="output"></pre>
+
+    <script>
+        //if (!localStorage.getItem('user:authed') || !localStorage.getItem('user:name') || !localStorage.getItem('user:pwd')) {
+        //    window.location.href = "login.html"; // Redirect to login page
+        //}
+
+        function executeCommand() {
+            const command = document.getElementById('command').value;
+            fetch('/execute', {
+                method: 'POST',
+                body: new URLSearchParams({ 'command': command }),
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(response => response.json()).then(data => {
+                document.getElementById('output').textContent = data.output;
+            });
+        }
+    </script>
+</body>
+</html>
